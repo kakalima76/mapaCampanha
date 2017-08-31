@@ -1,87 +1,70 @@
-var request = require('request');
+var request = require("request");
 var readline = require('linebyline');
+var rl = readline('./queryVotosCepRosa.csv');
 var fs = require('graceful-fs');
-rl = readline('./rosa.csv');
 
-   var status = function(valor){
-    	if(valor >= 100){
-    		return "muitoAlta"
-    	}
+function isEmpty(val){
+        return (val === undefined || val == null || val.length <= 0) ? true : false;
+}
 
-    	if(valor < 100 && valor >= 75){
-    		return "alta"
-    	}
+var status = function(valor){
+        if(valor >= 1000){
+            return "muitoAlta"
+        }
 
-    	if(valor < 75 && valor >= 50){
-    		return "moderada"
-    	}
+        if(valor < 1000 && valor >= 500){
+            return "alta"
+        }
 
-    	if(valor < 50 && valor >= 25){
-    		return "baixa"
-    	}
+        if(valor < 500 && valor >= 100){
+            return "moderada"
+        }
 
-    	if(valor < 25){
-    		return "muitoBaixa"
-    	}
+        if(valor < 100 && valor >= 25){
+            return "baixa"
+        }
+
+        if(valor < 25){
+            return "muitoBaixa"
+        }
     }
 
+        
+    rl.on('line', function(line, lineCount, byteCount) {   
 
-	var carrega = function(){
-		var array = []
-        return new Promise(function(fulfill, reject){
-            rl.on('line', function(line, lineCount, byteCount) {
-    		var res = []; 
-    		res = line.split(',');
-    		
-    		if(res.length === 1){
-    			fulfill(array);
-    			console.log('ok');
-    		}
+        var array = line.split(','); 
 
-    		array.push(res);
-  			})
+        var url = "https://maps.googleapis.com/maps/api/geocode/json?address=" + array[0] + "&key=AIzaSyA2Q17pKrmTvyPvTomLtIw6pgEVfxlHYjI"
 
-  			.on('error', function(e) {
-    		// something went wrong 
-  			});     
-        })
-    }//fim da function
+        request(url, {json: true}, function (error, response, body) {
+            var str = null;          
 
-    var promise = carrega();
-    promise.then(function(data){
-    	data.forEach(function(value){
-    		value[0] = parseInt(value[0]);
-    		value[1] = parseInt(value[1]);
-    		value[2] = parseInt(value[2]);
-    	})
+          
+            if (!error && response.statusCode === 200)
+            {
 
-    	data.forEach(function(value){
-	    	var obj = {}
+                if(!isEmpty(body.results)){
+                    str = body.results[0].geometry.location.lat + ',' + body.results[0].geometry.location.lng + ','  + status(array[1]);                 
+                }else{
+                    str = 0.0 + ',' + 0.0 + ','  + status(array[1]);
+                }        
+            }
 
-			obj['zona'] = value[0],
-			obj['secao'] = value[1],
-			obj['status'] = status(value[2])
+            
+            fs.writeFile('./rosaCep.csv', str + '\n',{enconding:'utf-8',flag: 'a'}, function (err) {
+            if (err) throw err;
+            });
 
-			var response = obj['zona'] + ',' + obj['secao'] + ',' + obj['status'] + '\n';
+        });
 
-	    	 	fs.writeFile('./rosaCep.csv', response ,{enconding:'utf-8',flag: 'a'}, function (err) {
-		    	if (err) throw err;
-				});
-			
-			request.post({url:'http://localhost:3010/locais/buscar', json: true, form: obj}, function(err,httpResponse,body){
-	    	 	obj['cep'] = body[0].CEP
-	    	 	
-			}) 
-    	})
+
+    rl.on('end', function(){
+
+      
     })
 
-     
-    
-
-   
-
-
-  
- 
-
+  })
+  .on('error', function(e) {
+    console.log('Erro do tipo: ' + e);
+  });        
    
