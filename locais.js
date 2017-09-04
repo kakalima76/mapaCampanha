@@ -27,37 +27,36 @@ var status = function(valor){
         if(valor < 25){
             return "muitoBaixa"
         }
-    }
+}
 
         
     rl.on('line', function(line, lineCount, byteCount) {   
 
         var array = line.split(','); 
 
-        var url = "https://maps.googleapis.com/maps/api/geocode/json?address=" + array[0] + "&key=AIzaSyA2Q17pKrmTvyPvTomLtIw6pgEVfxlHYjI"
+        var options = {
+            url: 'http://www.cepaberto.com/api/v2/ceps.json?cep=' + array[0],
+            headers: {'Authorization': 'Token token=195c1952a125d1424bb59a9daea74809'}
+        };
 
-        request(url, {json: true}, function (error, response, body) {
-            var str = null;          
 
-          
-            if (!error && response.statusCode === 200)
-            {
-
-                if(!isEmpty(body.results)){
-                    str = body.results[0].geometry.location.lat + ',' + body.results[0].geometry.location.lng + ','  + status(array[1]);                 
-                }else{
-                    str = 0.0 + ',' + 0.0 + ','  + status(array[1]);
-                }        
-            }
-
+        function callback(error, response, body) {
+            if (!error && response.statusCode == 200) {
+            var info = JSON.parse(body);
             
-            fs.writeFile('./rosaCep.csv', str + '\n',{enconding:'utf-8',flag: 'a'}, function (err) {
-            if (err) throw err;
-            });
+            var str = info.latitude + ',' + info.longitude + ',' + status(array[1]);
 
-        });
+                fs.writeFile('./rosaCep.csv',str + '\n',{enconding:'utf-8',flag: 'a'}, function (err) {
+                if (err) throw err;
+                });
 
+            }
+        }
+        
 
+        request(options, callback);
+
+        
     rl.on('end', function(){
 
       
